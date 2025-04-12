@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda Log Group Definition
+
+Resources:
+  snSLABSLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${snSLABSLambda}'
+      RetentionInDays: 30

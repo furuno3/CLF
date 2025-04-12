@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ServiceNow Cloud Call Center Main Stack
+
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  Parameters:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: parameters.yaml
+
+  LambdaRole:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: lambda/role.yaml
+
+  LambdaPolicy:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: lambda/policy.yaml
+
+  LambdaFunction:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: lambda/function.yaml
+
+  KinesisStream:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: kinesis/stream.yaml
+
+  LogGroup:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: logs/loggroup.yaml
+
+  SSMDefaultConfig:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ssm/default-config.yaml
+
+  SSMCtiRestHost:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ssm/cti-rest-host.yaml

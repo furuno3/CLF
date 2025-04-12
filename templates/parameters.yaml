@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ServiceNow Cloud Call Center Default Stack - Parameters
+
+Parameters:
+  LambdaS3BucketName:
+    Type: String
+    Default: ''
+    Description: S3 Bucket Name where Lambda.zip is uploaded
+  LambdaFileKey:
+    Type: String
+    Default: ''
+    Description: Provide S3 file Key for Lambda Zip artifact
+  CallRecordingBucketName:
+    Type: String
+    Default: ''
+    Description: Provide the call recording Bucket Name
