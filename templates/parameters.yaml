@@ -1,16 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: ServiceNow Cloud Call Center Default Stack - Parameters
+Description: Common parameters for ServiceNow CTI
 
 Parameters:
+  # Lambda code location
   LambdaS3BucketName:
     Type: String
-    Default: ''
-    Description: S3 Bucket Name where Lambda.zip is uploaded
+    Description: S3 bucket where Lambda.zip is uploaded
   LambdaFileKey:
     Type: String
-    Default: ''
-    Description: Provide S3 file Key for Lambda Zip artifact
+    Description: S3 key for Lambda ZIP artifact
+
+  # Call recording bucket
   CallRecordingBucketName:
     Type: String
-    Default: ''
-    Description: Provide the call recording Bucket Name
+    Description: S3 bucket name to store call recordings

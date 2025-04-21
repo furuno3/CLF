@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Compute layer (Lambda function and event mapping)
+
+Parameters:
+  LambdaS3BucketName:
+    Type: String
+  LambdaFileKey:
+    Type: String
+  snSLABSRoleArn:
+    Type: String
+    Description: Imported ARN of CTI Lambda execution role
+
+Resources:
+  snSLABSLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: snSLABSLambda
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Timeout: 30
+      Role: !Ref snSLABSRoleArn
+      Code:
+        S3Bucket: !Ref LambdaS3BucketName
+        S3Key:    !Ref LambdaFileKey
+      Environment:
+        Variables:
+          ssm_configuration_path: /com.servicenow.cti/946403cfdb8c80180ae3ac44d4961982/SLABS/default
+          provider_id: c4b12aa6e700001034b36584c2f6a9bc
+
+  snSLABSEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !ImportValue snSLABSKinesisStreamArn
+      FunctionName:   !Ref snSLABSLambda
+      StartingPosition: TRIM_HORIZON
+
+Outputs:
+  snSLABSLambdaArn:
+    Description: ARN of CTI Lambda function
+    Value: !GetAtt snSLABSLambda.Arn
+    Export:
+      Name: snSLABSLambdaArn

@@ -1,0 +1,11 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "ServiceNowCloudCallCenter"
+s3_bucket = "test-f123"
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = [
+    "ParameterKey=LambdaS3BucketName,ParameterValue=test-f123",
+    "ParameterKey=LambdaFileKey,ParameterValue=PutNumberToInterctionTable-97511651-c9e3-4dfd-a1ac-c27bf1eab4da.zip",
+    "ParameterKey=CallRecordingBucketName,ParameterValue=test-f-call"
+]
+profile = "prod-is"

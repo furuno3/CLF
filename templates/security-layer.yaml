@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Security layer (IAM roles, policies) and SSM parameters
+
+Parameters:
+  CallRecordingBucketName:
+    Type: String
+    Description: S3 bucket name to store call recordings
+
+Resources:
+  # Execution role for CTI Lambda
+  snSLABSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  # Inline policy for KMS, Kinesis, S3, CloudWatch, SSM
+  snSLABSPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: snSLABSLambdaCloudWatchPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: InlinePolicy0
+            Effect: Allow
+            Action:
+              - kms:Decrypt
+              - kinesis:ListStreams
+            Resource: '*'
+          - Sid: InlinePolicy1
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - ssm:GetParametersByPath
+            Resource:
+              - !Sub 'arn:aws:s3:::${CallRecordingBucketName}/*'
+              - !ImportValue snSLABSLambdaLogGroupArn
+              - !ImportValue snSLABSDefaultConfigParamArn
+          - Sid: InlinePolicy2
+            Effect: Allow
+            Action:
+              - kinesis:GetRecords
+              - kinesis:GetShardIterator
+              - kinesis:DescribeStream
+            Resource: !ImportValue snSLABSKinesisStreamArn
+      Roles:
+        - !Ref snSLABSRole
+
+  # SSM parameter for ServiceNow CTI default profile
+  snSLABSDefaultConfigurationProfile:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /com.servicenow.cti/946403cfdb8c80180ae3ac44d4961982/SLABS/default
+      Type: String
+      Value: |
+        { required: { … }, optional: { provider_id: { value: "c4b12aa6e700001034b36584c2f6a9bc" } } }
+
+  # SSM parameter for CTI REST host
+  snSLABSCtiRestHost:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /com.servicenow.cti/946403cfdb8c80180ae3ac44d4961982/SLABS/default/host
+      Type: String
+      Value: nttpccomdev2.service-now.com
+
+Outputs:
+  snSLABSRoleArn:
+    Description: ARN of CTI Lambda execution role
+    Value: !GetAtt snSLABSRole.Arn
+    Export:
+      Name: snSLABSRoleArn
+
+  snSLABSDefaultConfigParamArn:
+    Description: ARN of default config SSM parameter
+    Value: !Ref snSLABSDefaultConfigurationProfile
+    Export:
+      Name: snSLABSDefaultConfigParamArn

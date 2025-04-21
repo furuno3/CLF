@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Data layer (Kinesis stream and CloudWatch log group)
+
+Resources:
+  snSLABSKinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: snSLABSKinesisStream
+      ShardCount: 1
+
+  snSLABSLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${snSLABSLambda}'
+      RetentionInDays: 30
+
+Outputs:
+  snSLABSKinesisStreamArn:
+    Description: ARN of the Kinesis stream
+    Value: !GetAtt snSLABSKinesisStream.Arn
+    Export:
+      Name: snSLABSKinesisStreamArn
+
+  snSLABSLambdaLogGroupArn:
+    Description: ARN of the Lambda log group
+    Value: !GetAtt snSLABSLambdaLogGroup.Arn
+    Export:
+      Name: snSLABSLambdaLogGroupArn
