@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Parent Stack calling nested stacks for ServiceNow Cloud Call Center
+
+Parameters:
+  LambdaS3BucketName:
+    Type: String
+    Description: S3 Bucket Name where Lambda.zip is uploaded
+  LambdaFileKey:
+    Type: String
+    Description: Provide S3 file Key for Lambda Zip artifact
+  CallRecordingBucketName:
+    Type: String
+    Description: Provide the call recording Bucket Name
+
+Resources:
+  IAMStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://test-f123.s3.ap-northeast-1.amazonaws.com/iam-resources.yaml
+
+  KinesisStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://test-f123.s3.ap-northeast-1.amazonaws.com/kinesis-resources.yaml
+
+  SSMStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://test-f123.s3.ap-northeast-1.amazonaws.com/ssm-parameters.yaml
+
+  LambdaStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - IAMStack
+      - KinesisStack
+      - SSMStack
+    Properties:
+      TemplateURL: https://test-f123.s3.ap-northeast-1.amazonaws.com/lambda-resources.yaml
+      Parameters:
+        LambdaS3BucketName: !Ref LambdaS3BucketName
+        LambdaFileKey: !Ref LambdaFileKey
+        CallRecordingBucketName: !Ref CallRecordingBucketName
+        RoleArn: !GetAtt IAMStack.Outputs.RoleArn
+        RoleName: !GetAtt IAMStack.Outputs.RoleName
+        KinesisStreamArn: !GetAtt KinesisStack.Outputs.KinesisStreamArn
+        DefaultConfigArn: !GetAtt SSMStack.Outputs.DefaultConfigArn

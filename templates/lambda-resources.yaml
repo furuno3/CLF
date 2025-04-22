@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda, LogGroup, IAM Policy and EventSourceMapping for ServiceNow CTI
+
+Parameters:
+  LambdaS3BucketName:
+    Type: String
+  LambdaFileKey:
+    Type: String
+  CallRecordingBucketName:
+    Type: String
+  RoleArn:
+    Type: String
+  RoleName:
+    Type: String
+  KinesisStreamArn:
+    Type: String
+  DefaultConfigArn:
+    Type: String
+
+Resources:
+  # CloudWatch Logs Group
+  snSLABSLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/snSLABSLambda'
+      RetentionInDays: 30
+
+  # Lambda Function
+  snSLABSLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: snSLABSLambdaLogGroup
+    Properties:
+      Handler: index.handler
+      FunctionName: snSLABSLambda
+      Role: !Ref RoleArn
+      Code:
+        S3Bucket: !Ref LambdaS3BucketName
+        S3Key: !Ref LambdaFileKey
+      Environment:
+        Variables:
+          ssm_configuration_path: /com.servicenow.cti/946403cfdb8c80180ae3ac44d4961982/SLABS/default
+          provider_id: c4b12aa6e700001034b36584c2f6a9bc
+      Runtime: nodejs18.x
+      Timeout: 30
+
+  # Lex から呼び出し許可
+  snSLABSLambdaLexPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt snSLABSLambda.Arn
+      Principal: lex.amazonaws.com
+      SourceArn: !Sub 'arn:aws:lex:${AWS::Region}:${AWS::AccountId}:intent:*'
+
+  # IAM Policy for Lambda
+  snSLABSPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - snSLABSLambdaLogGroup
+    Properties:
+      PolicyName: snSLABSLambdaCloudWatchPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: InlinePolicy0
+            Effect: Allow
+            Action:
+              - kms:Decrypt
+              - kinesis:ListStreams
+            Resource: '*'
+          - Sid: InlinePolicy1
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - ssm:GetParametersByPath
+            Resource:
+              - !Sub 'arn:aws:s3:::${CallRecordingBucketName}/*'
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/snSLABSLambda:log-stream:*'
+              - !Ref DefaultConfigArn
+          - Sid: InlinePolicy2
+            Effect: Allow
+            Action:
+              - kinesis:GetRecords
+              - kinesis:GetShardIterator
+              - kinesis:DescribeStream
+            Resource: !Ref KinesisStreamArn
+      Roles:
+        - !Ref RoleName
+
+  # Kinesis → Lambda のイベントマッピング
+  snSLABSEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !Ref KinesisStreamArn
+      FunctionName: !GetAtt snSLABSLambda.Arn
+      StartingPosition: TRIM_HORIZON
