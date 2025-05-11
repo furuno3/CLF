@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: IAM Role for ServiceNow Lambda
 
 Resources:
-  snSLABSRole:
+  snLambdaRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:

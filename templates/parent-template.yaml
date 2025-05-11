@@ -5,9 +5,6 @@ Parameters:
   LambdaS3BucketName:
     Type: String
     Description: S3 Bucket Name where Lambda.zip is uploaded
-  LambdaFileKey:
-    Type: String
-    Description: Provide S3 file Key for Lambda Zip artifact
   CallRecordingBucketName:
     Type: String
     Description: Provide the call recording Bucket Name
@@ -38,7 +35,6 @@ Resources:
       TemplateURL: https://test-f123.s3.ap-northeast-1.amazonaws.com/lambda-resources.yaml
       Parameters:
         LambdaS3BucketName: !Ref LambdaS3BucketName
-        LambdaFileKey: !Ref LambdaFileKey
         CallRecordingBucketName: !Ref CallRecordingBucketName
         RoleArn: !GetAtt IAMStack.Outputs.RoleArn
         RoleName: !GetAtt IAMStack.Outputs.RoleName

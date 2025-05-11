@@ -4,8 +4,6 @@ Description: Lambda, LogGroup, IAM Policy and EventSourceMapping for ServiceNow 
 Parameters:
   LambdaS3BucketName:
     Type: String
-  LambdaFileKey:
-    Type: String
   CallRecordingBucketName:
     Type: String
   RoleArn:
@@ -19,23 +17,69 @@ Parameters:
 
 Resources:
   # CloudWatch Logs Group
-  snSLABSLambdaLogGroup:
+  snDefaultHandlerLambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub '/aws/lambda/snSLABSLambda'
+      LogGroupName: !Sub '/aws/lambda/sn_default_handler'
+      RetentionInDays: 30
+
+  snKinesisHandlerLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/sn_kinesis_handler'
+      RetentionInDays: 30
+
+  snS3HandlerLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/sn_s3_handler'
       RetentionInDays: 30
 
   # Lambda Function
-  snSLABSLambda:
+  snDefaultHandlerLambda:
     Type: AWS::Lambda::Function
-    DependsOn: snSLABSLambdaLogGroup
+    DependsOn: snDefaultHandlerLambdaLogGroup
     Properties:
       Handler: index.handler
-      FunctionName: snSLABSLambda
+      FunctionName: sn_default_handler
       Role: !Ref RoleArn
       Code:
         S3Bucket: !Ref LambdaS3BucketName
-        S3Key: !Ref LambdaFileKey
+        S3Key: sn_default_handler.zip
+      Environment:
+        Variables:
+          ssm_configuration_path: /com.servicenow.cti/946403cfdb8c80180ae3ac44d4961982/SLABS/default
+          provider_id: c4b12aa6e700001034b36584c2f6a9bc
+      Runtime: nodejs18.x
+      Timeout: 30
+
+  snKinesisHandlerLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: snKinesisHandlerLambdaLogGroup
+    Properties:
+      Handler: index.handler
+      FunctionName: sn_kinesis_handler
+      Role: !Ref RoleArn
+      Code:
+        S3Bucket: !Ref LambdaS3BucketName
+        S3Key: sn_kinesis_handler.zip
+      Environment:
+        Variables:
+          ssm_configuration_path: /com.servicenow.cti/946403cfdb8c80180ae3ac44d4961982/SLABS/default
+          provider_id: c4b12aa6e700001034b36584c2f6a9bc
+      Runtime: nodejs18.x
+      Timeout: 30
+
+  snS3HandlerLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: snS3HandlerLambdaLogGroup
+    Properties:
+      Handler: index.handler
+      FunctionName: sn_s3_handler
+      Role: !Ref RoleArn
+      Code:
+        S3Bucket: !Ref LambdaS3BucketName
+        S3Key: sn_s3_handler.zip
       Environment:
         Variables:
           ssm_configuration_path: /com.servicenow.cti/946403cfdb8c80180ae3ac44d4961982/SLABS/default
@@ -44,21 +88,109 @@ Resources:
       Timeout: 30
 
   # Lex から呼び出し許可
-  snSLABSLambdaLexPermissions:
+  snDefaultHandlerLambdaLexPermissions:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt snSLABSLambda.Arn
+      FunctionName: !GetAtt snDefaultHandlerLambda.Arn
+      Principal: lex.amazonaws.com
+      SourceArn: !Sub 'arn:aws:lex:${AWS::Region}:${AWS::AccountId}:intent:*'
+
+  snKinesisHandlerLambdaLexPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt snKinesisHandlerLambda.Arn
+      Principal: lex.amazonaws.com
+      SourceArn: !Sub 'arn:aws:lex:${AWS::Region}:${AWS::AccountId}:intent:*'
+
+  snS3HandlerLambdaLexPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt snS3HandlerLambda.Arn
       Principal: lex.amazonaws.com
       SourceArn: !Sub 'arn:aws:lex:${AWS::Region}:${AWS::AccountId}:intent:*'
 
   # IAM Policy for Lambda
-  snSLABSPolicy:
+  snDefaultHandlerLambdaPolicy:
     Type: AWS::IAM::Policy
     DependsOn:
-      - snSLABSLambdaLogGroup
+      - snDefaultHandlerLambdaLogGroup
     Properties:
-      PolicyName: snSLABSLambdaCloudWatchPolicy
+      PolicyName: snDefaultHandlerLambdaCloudWatchPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: InlinePolicy0
+            Effect: Allow
+            Action:
+              - kms:Decrypt
+              - kinesis:ListStreams
+            Resource: '*'
+          - Sid: InlinePolicy1
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - ssm:GetParametersByPath
+            Resource:
+              - !Sub 'arn:aws:s3:::${CallRecordingBucketName}/*'
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/snSLABSLambda:log-stream:*'
+              - !Ref DefaultConfigArn
+          - Sid: InlinePolicy2
+            Effect: Allow
+            Action:
+              - kinesis:GetRecords
+              - kinesis:GetShardIterator
+              - kinesis:DescribeStream
+            Resource: !Ref KinesisStreamArn
+      Roles:
+        - !Ref RoleName
+
+  snKinesisHandlerLambdaPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - snKinesisHandlerLambdaLogGroup
+    Properties:
+      PolicyName: snKinesisHandlerLambdaCloudWatchPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: InlinePolicy0
+            Effect: Allow
+            Action:
+              - kms:Decrypt
+              - kinesis:ListStreams
+            Resource: '*'
+          - Sid: InlinePolicy1
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - ssm:GetParametersByPath
+            Resource:
+              - !Sub 'arn:aws:s3:::${CallRecordingBucketName}/*'
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/snSLABSLambda:log-stream:*'
+              - !Ref DefaultConfigArn
+          - Sid: InlinePolicy2
+            Effect: Allow
+            Action:
+              - kinesis:GetRecords
+              - kinesis:GetShardIterator
+              - kinesis:DescribeStream
+            Resource: !Ref KinesisStreamArn
+      Roles:
+        - !Ref RoleName
+
+  snS3HandlerLambdaPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - snS3HandlerLambdaLogGroup
+    Properties:
+      PolicyName: snS3HandlerLambdaCloudWatchPolicy
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -94,5 +226,5 @@ Resources:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
       EventSourceArn: !Ref KinesisStreamArn
-      FunctionName: !GetAtt snSLABSLambda.Arn
+      FunctionName: !GetAtt snKinesisHandlerLambda.Arn
       StartingPosition: TRIM_HORIZON
