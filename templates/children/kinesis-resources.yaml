@@ -2,13 +2,13 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Kinesis Stream for ServiceNow CTI
 
 Resources:
-  snSLABSKinesisStream:
+  snLambdaKinesisStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: snSLABSKinesisStream
+      Name: snLambdaKinesisStream
       ShardCount: 1
 
 Outputs:
   KinesisStreamArn:
     Description: ARN of the Kinesis Stream
-    Value: !GetAtt snSLABSKinesisStream.Arn
+    Value: !GetAtt snLambdaKinesisStream.Arn

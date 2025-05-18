@@ -14,6 +14,8 @@ Parameters:
     Type: String
   DefaultConfigArn:
     Type: String
+  ProviderId:
+    Type: String
 
 Resources:
   # CloudWatch Logs Group
@@ -49,7 +51,7 @@ Resources:
       Environment:
         Variables:
           ssm_configuration_path: /com.servicenow.cti/946403cfdb8c80180ae3ac44d4961982/SLABS/default
-          provider_id: c4b12aa6e700001034b36584c2f6a9bc
+          provider_id: !Ref ProviderId
       Runtime: nodejs18.x
       Timeout: 30
 

@@ -16,8 +16,8 @@ Resources:
 Outputs:
   RoleArn:
     Description: ARN of the Lambda execution role
-    Value: !GetAtt snSLABSRole.Arn
+    Value: !GetAtt snLambdaRole.Arn
 
   RoleName:
     Description: RoleName of the Lambda execution role
-    Value: !Ref snSLABSRole
+    Value: !Ref snLambdaRole
