@@ -38,7 +38,7 @@ Resources:
       - KinesisStack
       - SSMStack
     Properties:
-      TemplateURL: https://test-f123.s3.ap-northeast-1.amazonaws.com/lambda-resources.yaml
+      TemplateURL: !Sub "https://${LambdaS3BucketName}.s3.${AWS::Region}.amazonaws.com/lambda-resources.yaml"
       Parameters:
         LambdaS3BucketName: !Ref LambdaS3BucketName
         CallRecordingBucketName: !Ref CallRecordingBucketName
